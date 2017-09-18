@@ -1,5 +1,7 @@
 # async-handler
 
+[![CircleCI](https://circleci.com/gh/axdg/async-handler.svg?style=shield)](https://circleci.com/gh/axdg/async-handler)  [![Build Status](https://semaphoreci.com/api/v1/axdg/async-handler/branches/master/shields_badge.svg)](https://semaphoreci.com/axdg/async-handler)
+
 ## Usage
 
 **WIP: *usage example coming***
@@ -13,12 +15,10 @@
 - **fn** (`function`)
 - **catcher** (`function`)
 
-### buffer(*incomingMessage*, *limit*)
+### buffer(*incomingMessage*, *[limit]*)
 
 - **incomingMessage** (`object`) - an `http.incomingMessage`
 - **limit** (`number`) - defaults to `1000000`
-
-- **read** *etc...*
 
 ## LICENSE
 
