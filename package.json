@@ -1,0 +1,22 @@
+{
+  "name": "async-handler",
+  "version": "0.0.1",
+  "description": "generator for async cloud function handlers",
+  "main": "src/index.js",
+  "repository": "https://github.com/axdg/async handler",
+  "scripts": {
+    "test:lint": "eslint src test",
+    "test:es": "ava --verbose",
+    "test": "npm run test:es && npm run test:lint"
+  },
+  "author": "axdg <axdg@dfant.asia>",
+  "license": "MIT",
+  "devDependencies": {
+    "ava": "^0.22.0",
+    "babel-eslint": "^6.1.2",
+    "eslint": "^3.0.1",
+    "eslint-config-airbnb-base": "^3.0.1",
+    "eslint-plugin-import": "^1.10.2",
+    "http-interfaces": "0.0.1"
+  }
+}
