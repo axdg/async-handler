@@ -1,6 +1,7 @@
 const { STATUS_CODES } = require('http')
 const { Readable } = require('stream')
 
+// TODO: Document these constants... and their usage.
 const LIMIT_EXCEEDED = '@@ASYNC_HANDLER/LIMIT_EXCEEDED'
 const SERIALIZATION_FAILURE = '@@ASYNC_HANDLER/JSON_SERIALIZATION_FAILURE'
 const UNKNOWN_TYPE = '@@ASYNC_HANDLER/UNKNOWN_TYPE'
