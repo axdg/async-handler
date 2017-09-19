@@ -9,11 +9,12 @@ const CLIENT_ERROR = '@@ASYNC_HANDLER/CLIENT_ERROR'
 const CONTENT_TYPE = 'Content-Type'
 const CONTENT_LENGTH = 'Content-Length'
 
+// TODO: Possibly Wrap this in a call to `createBufferer`... so that the limit is inherant.
 const map = new WeakMap()
 
 const buffer = function (incomingMessage, limit = 1000000) {
   // `map` allows multiple calls toe buffer to work as expected.
-  if (map.has(incomingMessage)) return map.get(incomingMessage)
+  if (map.has(incomingMessage)) return Promise.reject(new Error('multiple attempts to buffer same message'))
 
   // If there's nothing in the cache... return a promise.
   const p = new Promise(function (resolve, reject) {
@@ -60,7 +61,7 @@ const createHandler = function (fn, catcher) {
       // Deal with reabable streams... pipe into the response.ßß
       if (data instanceof Readable) {
         if (!res.getHeader(CONTENT_TYPE)) res.setHeader(CONTENT_TYPE, 'application/octet-stream')
-        return res.pipe(data)
+        return data.pipe(res)
       }
 
       // Deal with an `Object`

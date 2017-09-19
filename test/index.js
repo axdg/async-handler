@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars*/
 const test = require('ava')
+const { Readable } = require('stream')
 const { createIncomingMessage, createServerResponse } = require('http-interfaces')
 const { createHandler, buffer } = require('../src/index.js')
 
@@ -66,8 +67,64 @@ test('async handler with an error handler', async function (t) {
   t.true(headers['Content-Length'] === 57)
 })
 
-test.todo('buffering the body of an incoming message')
-test.todo('returning a stream')
-test.todo('returning an object')
+// TODO: What about rejection because of a client error?
+test('buffering the body of an incoming message', async function (t) {
+  const CONTENT = 'some text content of the incoming message'
+  let req = createIncomingMessage(CONTENT)
+
+  const data = await buffer(req)
+  t.true(data.toString() === CONTENT)
+
+  req = createIncomingMessage(CONTENT)
+  let err = false
+  try {
+    /**
+     * TODO: There is a bug here... this errors... but since the promise is
+     * shared it will stop buffering even if some other call to buffer
+     * requires a greater limit.
+     */
+    await buffer(req, 16)
+  } catch (_) { err = true }
+  t.true(err)
+})
+
+test('returning a stream', async function (t) {
+  const CONTENT = 'some echo content... just passing through'
+
+  const fn = async function (_, res) {
+    return req
+  }
+
+  const req = createIncomingMessage(CONTENT)
+  const res = createServerResponse()
+
+  const ret = await createHandler(fn)(req, res)
+  t.true(ret === undefined)
+
+  const data = await res.buffer().then(b => b.toString())
+  t.true(data === CONTENT)
+
+  // TODO: Inspect the headers.
+})
+
+test('returning an object', async function (t) {
+  const CONTENT =  'ROFL'
+
+  const fn = async function () {
+    return { content: CONTENT }
+  }
+
+  const req = createIncomingMessage(CONTENT)
+  const res = createServerResponse()
+
+  const ret = await createHandler(fn)(req, res)
+  t.true(ret === undefined)
+
+  const { content } = await res.buffer().then(b => JSON.parse(b.toString()))
+  t.true(content === CONTENT)
+
+  // TODO: Inspect headers for `application/json` and content length
+})
+
 test.todo('returning a string')
 test.todo('returning a buffer')
