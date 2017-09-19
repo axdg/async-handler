@@ -12,9 +12,10 @@ const CONTENT_LENGTH = 'Content-Length'
 const map = new WeakMap()
 
 const buffer = function (incomingMessage, limit = 1000000) {
+  // `map` allows multiple calls toe buffer to work as expected.
   if (map.has(incomingMessage)) return map.get(incomingMessage)
 
-  // Otherwise this is the first cache hit... create the new promise.
+  // If there's nothing in the cache... return a promise.
   const p = new Promise(function (resolve, reject) {
     let len = 0
     const chunks = []
@@ -40,23 +41,23 @@ const buffer = function (incomingMessage, limit = 1000000) {
 
 const createHandler = function (fn, catcher) {
   return function (req, res) {
-    const p = fn(res, res)
+    const _catcher = typeof catcher === 'function' ? catcher : function (_, _res) {
+      _res.writeHead(500, STATUS_CODES[500], { [CONTENT_LENGTH]: 0 })
+      return _res.end()
+    }
 
-    /**
-     * Handle a promise resolution.
-     */
-    const x = p.then(function (data) {
+    fn(req, res).then(function (data) {
       res.statusCode = res.statusCode || 200
 
       // Nothing was returned... everything has been handled.
       if (data === undefined) return undefined
 
-      // Deal with `stream.Readable`
       if (data === null) {
         res.writeHead(200, STATUS_CODES[200], { [CONTENT_LENGTH]: 0 })
         return res.end()
       }
 
+      // Deal with reabable streams... pipe into the response.ßß
       if (data instanceof Readable) {
         if (!res.getHeader(CONTENT_TYPE)) res.setHeader(CONTENT_TYPE, 'application/octet-stream')
         return res.pipe(data)
@@ -72,33 +73,25 @@ const createHandler = function (fn, catcher) {
         }
       }
 
-      // Strings should be converted to a buffer.
+      // We can deal with strings by just converting them to buffers.
       if (typeof data === 'string') data = Buffer.from(data)
 
       // Deal with `Buffer`
       if (Buffer.isBuffer(data)) {
         if (!res.getHeader(CONTENT_TYPE)) res.setHeader(CONTENT_TYPE, 'application/octet-stream')
-        return res.setHeader(CONTENT_LENGTH, Buffer.byteLength(data))
+        res.setHeader(CONTENT_LENGTH, Buffer.byteLength(data))
+        return res.end(data)
       }
 
       return Promise.reject(UNKNOWN_TYPE)
-    })
-
-    const _catcher = typeof catcher === 'function' ? catcher : function () {
-      res.writeHead(500, STATUS_CODES[500], { [CONTENT_LENGTH]: 0 })
-      return res.end()
-    }
-
-    /**
-     * Handles promise rejection... this really should be happening in prod though.
-     */
-    x.catch(_catcher)
+    }).catch(err => _catcher(res, res, err))
   }
 }
 
 module.exports.LIMIT_EXCEEDED = LIMIT_EXCEEDED
 module.exports.SERIALIZATION_FAILURE = SERIALIZATION_FAILURE
 module.exports.UNKNOWN_TYPE = UNKNOWN_TYPE
+module.exports.CLIENT_ERROR = CLIENT_ERROR
 
 module.exports.buffer = buffer
 module.exports.createHandler = createHandler
