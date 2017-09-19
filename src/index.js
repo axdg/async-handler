@@ -14,7 +14,10 @@ const map = new WeakMap()
 
 const buffer = function (incomingMessage, limit = 1000000) {
   // `map` allows multiple calls toe buffer to work as expected.
-  if (map.has(incomingMessage)) return Promise.reject(new Error('multiple attempts to buffer same message'))
+  if (map.has(incomingMessage)) {
+    const err = new Error('multiple attempts to buffer same message')
+    return Promise.reject(err)
+  }
 
   // If there's nothing in the cache... return a promise.
   const p = new Promise(function (resolve, reject) {
@@ -40,6 +43,7 @@ const buffer = function (incomingMessage, limit = 1000000) {
   return p
 }
 
+// TODO: No need to do all of the conversion to buffers here... just send strings.ß
 const createHandler = function (fn, catcher) {
   return function (req, res) {
     const _catcher = typeof catcher === 'function' ? catcher : function (_, _res) {
@@ -58,14 +62,14 @@ const createHandler = function (fn, catcher) {
         return res.end()
       }
 
-      // Deal with reabable streams... pipe into the response.ßß
+      // Deal with reabable streams... just pipe it into the response.
       if (data instanceof Readable) {
         if (!res.getHeader(CONTENT_TYPE)) res.setHeader(CONTENT_TYPE, 'application/octet-stream')
         return data.pipe(res)
       }
 
       // Deal with an `Object`
-      if (typeof data === 'object') {
+      if (!Buffer.isBuffer(data) && typeof data === 'object') {
         try {
           data = JSON.stringify(data, null, 2)
           res.setHeader(CONTENT_TYPE, 'application/json')

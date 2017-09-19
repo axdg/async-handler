@@ -1,12 +1,11 @@
-/* eslint-disable no-unused-vars*/
 const test = require('ava')
-const { Readable } = require('stream')
 const { createIncomingMessage, createServerResponse } = require('http-interfaces')
 const { createHandler, buffer } = require('../src/index.js')
 
 test('async handler creation', async function (t) {
   const CONTENT = 'body { background: cornFlourBlue  }'
   const STATUS_TEXT = 'BOOM!'
+
   /**
    * A minimal handler.
    */
@@ -34,7 +33,6 @@ test('async handler creation', async function (t) {
 // TODO: Catch the error thrown... pass a number or something.
 test('async handler with an error handler', async function (t) {
   const ERROR_MESSAGE = 'some error!!!'
-  const STATUS_TEXT = 'Whoops!!!'
   const MESSAGE = '/** ¯\_(ツ)_/¯ */' // eslint-disable-line no-useless-escape
 
   const fn = async function () {
@@ -62,7 +60,7 @@ test('async handler with an error handler', async function (t) {
   t.true(error === ERROR_MESSAGE)
   t.true(message === MESSAGE)
 
-  const { headers, status, statusText } = res
+  const { headers } = res
   t.true(headers['Content-Type'] === 'application/json')
   t.true(headers['Content-Length'] === 57)
 })
@@ -88,12 +86,11 @@ test('buffering the body of an incoming message', async function (t) {
   t.true(err)
 })
 
+// TODO: All of the tests below require header inspection.
 test('returning a stream', async function (t) {
   const CONTENT = 'some echo content... just passing through'
 
-  const fn = async function (_, res) {
-    return req
-  }
+  const fn = req => Promise.resolve(req)
 
   const req = createIncomingMessage(CONTENT)
   const res = createServerResponse()
@@ -108,7 +105,7 @@ test('returning a stream', async function (t) {
 })
 
 test('returning an object', async function (t) {
-  const CONTENT =  'ROFL'
+  const CONTENT = 'ROFL'
 
   const fn = async function () {
     return { content: CONTENT }
@@ -122,9 +119,34 @@ test('returning an object', async function (t) {
 
   const { content } = await res.buffer().then(b => JSON.parse(b.toString()))
   t.true(content === CONTENT)
-
-  // TODO: Inspect headers for `application/json` and content length
 })
 
-test.todo('returning a string')
-test.todo('returning a buffer')
+test('returning a string', async function (t) {
+  const CONTENT = 'ROFL'
+
+  const fn = () => Promise.resolve(CONTENT)
+
+  const req = createIncomingMessage()
+  const res = createServerResponse()
+
+  const ret = await createHandler(fn)(req, res)
+  t.true(ret === undefined)
+
+  const data = await res.buffer().then(b => b.toString())
+  t.true(data === CONTENT)
+})
+
+test('returning a buffer', async function (t) {
+  const CONTENT = Buffer.from('ROFL')
+
+  const fn = async () => CONTENT
+
+  const req = createIncomingMessage()
+  const res = createServerResponse()
+
+  const ret = await createHandler(fn)(req, res)
+  t.true(ret === undefined)
+
+  const data = await res.buffer().then(b => b.toString())
+  t.true(data === CONTENT.toString())
+})
